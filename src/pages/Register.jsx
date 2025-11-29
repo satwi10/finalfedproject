@@ -1,65 +1,97 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import appLogo from '../assets/EduTrack.png'; // Import your logo here
+import { useNavigate, Link } from 'react-router-dom';
+import { MockAPI } from '../data/mockData';
+import InputField from '../components/shared/InputField';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
 
-function Register() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [errors, setErrors] = useState({});
+export default function Register() {
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' });
+  const [errors, setErrors] = useState({}); // Store Validation Errors
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Level 5 Validation Logic
   const validate = () => {
-    const newErrors = {};
-    if (!fullName) newErrors.fullName = 'Full name is required.';
-    if (!email) newErrors.email = 'Email is required.';
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email is invalid.';
-    if (password.length < 8) newErrors.password = 'Password must be at least 8 characters.';
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match.';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    let tempErrors = {};
+    if (!form.name) tempErrors.name = "Full Name is required";
+    if (!form.email) tempErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) tempErrors.email = "Email format is invalid";
+    if (!form.password) tempErrors.password = "Password is required";
+    else if (form.password.length < 6) tempErrors.password = "Password must be at least 6 characters";
+    
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (validate()) {
-      alert('Registration successful! Please sign in.');
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!validate()) return; // Stop if validation fails
+
+    setLoading(true);
+    try {
+      await MockAPI.register(form.name, form.email, form.password, form.role);
+      alert("Registration Successful! Please Login.");
       navigate('/login');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <img src={appLogo} alt="Assignment Hub Logo" className="app-logo" /> {/* Add logo here */}
-      <h2>Create Account</h2>
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="form-group">
-          <label htmlFor="fullName">Full Name</label>
-          <input type="text" id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          {errors.fullName && <small className="error-message">{errors.fullName}</small>}
+    <div className="login-wrapper">
+      <div className="login-card animate-slide-up">
+        <div style={{ padding: '2rem 2rem 0', textAlign: 'center' }}>
+          <h2>Create Account</h2>
         </div>
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          {errors.email && <small className="error-message">{errors.email}</small>}
+        <div className="form-content">
+          <form onSubmit={handleRegister}>
+            <div>
+                <InputField 
+                    label="Full Name" type="text" value={form.name} 
+                    onChange={(e)=>setForm({...form, name: e.target.value})} 
+                    className={errors.name ? 'input-error' : ''}
+                />
+                {errors.name && <span className="error-text">{errors.name}</span>}
+            </div>
+
+            <div style={{marginTop: '10px'}}>
+                <InputField 
+                    label="Email" type="email" value={form.email} 
+                    onChange={(e)=>setForm({...form, email: e.target.value})} 
+                    className={errors.email ? 'input-error' : ''}
+                />
+                {errors.email && <span className="error-text">{errors.email}</span>}
+            </div>
+
+            <div style={{marginTop: '10px'}}>
+                <InputField 
+                    label="Password" type="password" value={form.password} 
+                    onChange={(e)=>setForm({...form, password: e.target.value})} 
+                    className={errors.password ? 'input-error' : ''}
+                />
+                {errors.password && <span className="error-text">{errors.password}</span>}
+            </div>
+
+            <div className="input-group" style={{marginTop: '10px'}}>
+              <label>Role</label>
+              <select value={form.role} onChange={(e)=>setForm({...form, role: e.target.value})} className="custom-input" style={{background:'white'}}>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </div>
+
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Sign Up'}
+            </button>
+          </form>
+          {loading && <LoadingSpinner />}
+          <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.9rem' }}>
+            Have an account? <Link to="/login" style={{ color: '#4f46e5', fontWeight: 'bold' }}>Login</Link>
+          </p>
         </div>
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          {errors.password && <small className="error-message">{errors.password}</small>}
-        </div>
-        <div className="form-group">
-          <label htmlFor="confirmPassword">Confirm Password</label>
-          <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-          {errors.confirmPassword && <small className="error-message">{errors.confirmPassword}</small>}
-        </div>
-        <button type="submit" className="btn btn-primary">Create Account</button>
-      </form>
-      <p className="auth-link">
-        Already registered? <Link to="/login">Sign In</Link>
-      </p>
+      </div>
     </div>
   );
 }
-export default Register;

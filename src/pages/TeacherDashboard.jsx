@@ -1,177 +1,128 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Modal from '../Components/Modal';
-import appLogo from '../assets/EduTrack.png'; // Import your logo here
+import React, { useEffect, useState } from 'react';
+import { MockAPI } from '../data/mockData';
+import InputField from '../components/shared/InputField';
+import Button from '../components/shared/Button';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import AnalyticsWidget from '../components/shared/AnalyticsWidget'; // NEW IMPORT
 
-function TeacherDashboard({ assignments, addAssignment, gradeSubmission }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [errors, setErrors] = useState({});
-  const [gradeInput, setGradeInput] = useState({});
+export default function TeacherDashboard() {
+  const [assignments, setAssignments] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ id: null, title: '', desc: '', deadline: '' });
+  const [isEditing, setIsEditing] = useState(false);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedAsn, setSelectedAsn] = useState(null);
-
-  const activeAssignments = assignments.filter(asn => asn.status === 'active');
-  const submittedAssignments = assignments.filter(asn => asn.status === 'submitted');
-  const completedAssignments = assignments.filter(asn => asn.status === 'completed');
-
-  const viewDetails = (assignment) => {
-    setSelectedAsn(assignment);
-    setIsModalOpen(true);
+  const refreshData = async () => {
+    setLoading(true);
+    const [a, s] = await Promise.all([MockAPI.getAssignments(), MockAPI.getSubmissions()]);
+    setAssignments(a);
+    setSubmissions(s);
+    setLoading(false);
   };
-  
-  const handleCreateSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!title) newErrors.title = "Title is required.";
-    if (!description) newErrors.description = "Description is required.";
-    if (!dueDate) newErrors.dueDate = "Due Date is required.";
+  useEffect(() => { refreshData(); }, []);
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+  // --- NEW FEATURE: EXPORT TO CSV ---
+  const handleExport = () => {
+    if (submissions.length === 0) return alert("No data to export!");
     
-    addAssignment({ title, description, dueDate });
-    setTitle('');
-    setDescription('');
-    setDueDate('');
-    setErrors({});
-    alert('Assignment created successfully!');
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Student ID,Assignment ID,Link,Status,Grade\n"; // Header
+
+    submissions.forEach(s => {
+      csvContent += `${s.studentId},${s.assignmentId},${s.link},${s.status},${s.grade || 'N/A'}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "gradebook.csv");
+    document.body.appendChild(link);
+    link.click();
   };
 
-  const handleGradeChange = (assignmentId, value) => {
-    setGradeInput(prev => ({ ...prev, [assignmentId]: value }));
+  // ... (Existing handlers: handleSubmit, handleEdit, handleDelete, handleGrade keep them same) ...
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setLoading(true);
+    if (isEditing) { await MockAPI.updateAssignment(formData); setIsEditing(false); } 
+    else { await MockAPI.createAssignment(formData); }
+    setFormData({ id: null, title: '', desc: '', deadline: '' }); await refreshData();
   };
 
-  const handleSaveGrade = (assignmentId) => {
-    const grade = gradeInput[assignmentId];
-    if (grade) {
-      gradeSubmission(assignmentId, grade);
-      alert(`Grade '${grade}' saved for assignment ${assignmentId}`);
-      setGradeInput(prev => {
-        const newState = { ...prev };
-        delete newState[assignmentId];
-        return newState;
-      });
-    } else {
-      alert("Please enter a grade.");
-    }
+  const handleEdit = (assignment) => { setFormData(assignment); setIsEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  
+  const handleDelete = async (id) => {
+    if(window.confirm("Delete this?")) { setLoading(true); await MockAPI.deleteAssignment(id); await refreshData(); }
+  };
+
+  const handleGrade = async (subId) => {
+    const g = prompt("Grade (0-100):"); const f = prompt("Feedback:");
+    if(g) { setLoading(true); await MockAPI.gradeSubmission(subId, g, f); await refreshData(); }
   };
 
   return (
-    <>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedAsn?.title}>
-          <p><strong>Description:</strong> {selectedAsn?.description}</p>
-          <p><strong>Due Date:</strong> {selectedAsn?.dueDate}</p>
-          <p><strong>Status:</strong> {selectedAsn?.status.charAt(0).toUpperCase() + selectedAsn?.status.slice(1)}</p>
-          {selectedAsn?.grade && <p><strong>Grade:</strong> {selectedAsn?.grade}</p>}
-      </Modal>
-
-      <div className="dashboard-body">
-        <nav className="navbar">
-          <div className="nav-content">
-            <Link to="/" className="logo-text-container"> {/* Container for logo and text */}
-                <img src={appLogo} alt="EduTrack Logo" className="navbar-logo" />
-                EduTrack
-            </Link>
-            <Link to="/" className="btn btn-secondary">Logout</Link>
-          </div>
-        </nav>
-        <main className="dashboard-container">
-          <header className="dashboard-header">
-            <h1>Teacher Dashboard</h1>
-            <p>Manage assignments and review submissions.</p>
-          </header>
-
-          <div className="card">
-            <header className="card-header"><h2>Create New Assignment</h2></header>
-            <div className="card-body">
-              <form onSubmit={handleCreateSubmit}>
-                <div className="form-group">
-                  <label htmlFor="title">Title</label>
-                  <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
-                  {errors.title && <small className="error-message">{errors.title}</small>}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="description">Description</label>
-                  <textarea id="description" rows="3" value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
-                  {errors.description && <small className="error-message">{errors.description}</small>}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="dueDate">Due Date</label>
-                  <input type="date" id="dueDate" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                  {errors.dueDate && <small className="error-message">{errors.dueDate}</small>}
-                </div>
-                <button type="submit" className="btn btn-primary">Publish Assignment</button>
-              </form>
-            </div>
-          </div>
-
-          <div className="card">
-            <header className="card-header"><h2>Review Submissions</h2></header>
-            <div className="card-body">
-              <div className="item-list">
-                {submittedAssignments.length > 0 ? submittedAssignments.map(asn => (
-                  <div className="item" key={asn.id}>
-                    <div className="item-content">
-                      <h3 onClick={() => viewDetails(asn)}>{asn.title}</h3>
-                      <p>Status: Submitted</p>
-                    </div>
-                    <div className="item-actions">
-                      <input 
-                        type="text" 
-                        placeholder="Grade..." 
-                        className="grade-input" 
-                        value={gradeInput[asn.id] || ''}
-                        onChange={(e) => handleGradeChange(asn.id, e.target.value)}
-                      />
-                      <button onClick={() => handleSaveGrade(asn.id)} className="btn btn-success">Save</button>
-                    </div>
-                  </div>
-                )) : <p className="text-muted">No pending submissions.</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <header className="card-header"><h2>Active Assignments</h2></header>
-            <div className="card-body">
-              <div className="item-list">
-                {activeAssignments.length > 0 ? activeAssignments.map(asn => (
-                  <div className="item" key={asn.id}>
-                    <div className="item-content">
-                      <h3 onClick={() => viewDetails(asn)}>{asn.title}</h3>
-                      <p>Due: {asn.dueDate}</p>
-                    </div>
-                    <div className="item-status">Active</div>
-                  </div>
-                )) : <p className="text-muted">No active assignments created.</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <header className="card-header"><h2>Graded Assignments</h2></header>
-            <div className="card-body">
-              <div className="item-list">
-                {completedAssignments.length > 0 ? completedAssignments.map(asn => (
-                  <div className="item" key={asn.id}>
-                    <div className="item-content">
-                      <h3 onClick={() => viewDetails(asn)}>{asn.title}</h3>
-                      <p>Due: {asn.dueDate}</p>
-                    </div>
-                    <div className="item-grade">{asn.grade || 'N/A'}</div>
-                  </div>
-                )) : <p className="text-muted">No assignments graded yet.</p>}
-              </div>
-            </div>
-          </div>
-        </main>
+    <div className="dashboard-container">
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <h1 className="dashboard-header animate-slide-up" style={{marginBottom:0}}>Teacher Dashboard</h1>
+        {/* Export Button */}
+        <button onClick={handleExport} style={{background:'white', color:'#23a6d5', padding:'10px 20px', borderRadius:'30px', fontWeight:'bold', border:'none', cursor:'pointer', boxShadow:'0 4px 10px rgba(0,0,0,0.1)'}}>
+          📥 Export CSV
+        </button>
       </div>
-    </>
+      
+      {loading && <LoadingSpinner />}
+
+      {/* NEW ANALYTICS WIDGET */}
+      <AnalyticsWidget assignments={assignments} submissions={submissions} />
+
+      {/* Section 1: Form */}
+      <div className="white-panel animate-slide-up">
+        <h2 className="section-title">{isEditing ? "Edit Assignment" : "Post New Assignment"}</h2>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <InputField placeholder="Assignment Title" value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} required />
+          <InputField type="date" value={formData.deadline} onChange={e=>setFormData({...formData, deadline: e.target.value})} required />
+          <div style={{ gridColumn: 'span 2' }}>
+            <InputField placeholder="Description" value={formData.desc} onChange={e=>setFormData({...formData, desc: e.target.value})} />
+            <div style={{ display: 'flex', gap: '10px', marginTop:'10px' }}>
+              <Button type="submit">{isEditing ? "Update" : "Publish"}</Button>
+              {isEditing && <button type="button" onClick={() => { setIsEditing(false); setFormData({ id: null, title: '', desc: '', deadline: '' }); }} style={{background:'#9ca3af', padding:'10px', borderRadius:'8px', border:'none', color:'white'}}>Cancel</button>}
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Section 2: Active Assignments */}
+      <div className="white-panel animate-slide-up stagger-1">
+        <h2 className="section-title">Active Assignments</h2>
+        {assignments.map(a => (
+          <div key={a.id} className="assignment-item">
+            <div><h3 style={{margin:0}}>{a.title}</h3><p style={{margin:0, color:'#666'}}>Due: {a.deadline}</p></div>
+            <div>
+              <button onClick={() => handleEdit(a)} className="action-btn btn-edit">Edit</button>
+              <button onClick={() => handleDelete(a.id)} className="action-btn btn-delete">Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Section 3: Submissions */}
+      <div className="white-panel animate-slide-up stagger-2">
+        <h2 className="section-title">Student Submissions</h2>
+        {submissions.map(s => {
+          const relatedAssignment = assignments.find(a => a.id === s.assignmentId) || {};
+          return (
+            <div key={s.id} className="assignment-item">
+              <div>
+                <h4>{relatedAssignment.title}</h4>
+                <p><strong>Student ID:</strong> {s.studentId}</p>
+                <div style={{color:'#0fbcf9'}}>{s.submissionType === 'file' ? `📄 ${s.link}` : `🔗 ${s.link}`}</div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                {s.grade ? <span style={{color:'#10ac84', fontWeight:'bold'}}>{s.grade}/100</span> : <button onClick={() => handleGrade(s.id)} className="action-btn btn-grade">Grade</button>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
-export default TeacherDashboard;

@@ -1,163 +1,98 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Modal from '../Components/Modal';
-import appLogo from '../assets/EduTrack.png';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useEffect, useState } from 'react';
+import { MockAPI } from '../data/mockData';
+import Card from '../components/shared/Card';
+import Button from '../components/shared/Button';
 
-function StudentDashboard({ assignments = [], submitAssignment }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedAsn, setSelectedAsn] = useState(null);
+export default function StudentDashboard() {
+  const [assignments, setAssignments] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [inputData, setInputData] = useState({});
+  const user = MockAPI.getCurrentUser();
 
-  const activeAssignments = assignments.filter(asn => asn.status === 'active');
-  const submittedAssignments = assignments.filter(
-    asn => asn.status === 'submitted' || asn.status === 'completed'
-  );
+  const refreshData = async () => {
+    const [a, s] = await Promise.all([MockAPI.getAssignments(), MockAPI.getSubmissions()]);
+    setAssignments(a);
+    setSubmissions(s);
+  };
+  useEffect(() => { refreshData(); }, []);
 
-  const viewDetails = (assignment) => {
-    setSelectedAsn(assignment);
-    setIsModalOpen(true);
+  // --- PROGRESS CALCULATION ---
+  const mySubmissions = submissions.filter(s => s.studentId === user.id);
+  const completedCount = mySubmissions.length;
+  const totalCount = assignments.length;
+  const progressPercent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+
+  // ... (Keep handleInputChange and handleSubmit logic the same) ...
+  const handleInputChange = (assignId, value, type) => {
+    setInputData(prev => ({ ...prev, [assignId]: { value, type } }));
   };
 
-  const handleSubmit = (id) => {
-    if (window.confirm('Are you sure you want to submit this assignment?')) {
-      submitAssignment(id);
-      alert('Assignment submitted!');
-    }
+  const handleSubmit = async (assignId) => {
+    const data = inputData[assignId];
+    if (!data || !data.value) return alert("Please provide data!");
+    const submissionValue = data.type === 'file' ? `📄 ${data.value.name}` : data.value;
+    await MockAPI.submitAssignment({ assignmentId: assignId, studentId: user.id, link: submissionValue, submissionType: data.type });
+    setInputData(prev => ({ ...prev, [assignId]: null }));
+    refreshData();
   };
 
-  // Notification for assignments near deadline or overdue
-  useEffect(() => {
-    const now = new Date();
-    activeAssignments.forEach(asn => {
-      const due = new Date(asn.dueDate);
-      const timeDiff = due - now;
-      if (timeDiff < 24 * 60 * 60 * 1000 && timeDiff > 0) {
-        toast.info(`Assignment "${asn.title}" is due soon!`);
-      }
-      if (timeDiff <= 0) {
-        toast.error(`Assignment "${asn.title}" is overdue!`);
-      }
-    });
-  }, [activeAssignments]);
+  const getMySubmission = (id) => submissions.find(s => s.assignmentId === id && s.studentId === user.id);
 
   return (
-    <>
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={selectedAsn?.title || ''}
-      >
-        {selectedAsn && (
-          <>
-            <p><strong>Description:</strong> {selectedAsn.description}</p>
-            <p><strong>Due Date:</strong> {selectedAsn.dueDate}</p>
-            <p>
-              <strong>Status:</strong>{' '}
-              {selectedAsn.status.charAt(0).toUpperCase() +
-                selectedAsn.status.slice(1)}
-            </p>
-            {selectedAsn.grade && (
-              <p>
-                <strong>Grade:</strong> {selectedAsn.grade}
-              </p>
-            )}
-            {selectedAsn.feedback && (
-              <p>
-                <strong>Feedback:</strong> {selectedAsn.feedback}
-              </p>
-            )}
-          </>
-        )}
-      </Modal>
-
-
-      <div className="dashboard-body">
-        <nav className="navbar">
-          <div className="nav-content">
-            <Link to="/" className="logo-text-container">
-              <img src={appLogo} alt="EduTrack Logo" className="navbar-logo" />
-              EduTrack
-            </Link>
-            <Link to="/" className="btn btn-secondary">
-              Logout
-            </Link>
+    <div className="dashboard-container">
+      <h1 className="dashboard-header animate-slide-up">Student Portal</h1>
+      
+      {/* --- NEW PROGRESS BAR --- */}
+      <div className="white-panel animate-slide-up">
+        <div className="progress-container">
+          <div className="progress-header">
+            <span>Your Progress</span>
+            <span>{progressPercent}%</span>
           </div>
-        </nav>
-        <main className="dashboard-container">
-          <header className="dashboard-header">
-            <h1>Student Dashboard</h1>
-            <p>Welcome back! Here are your assignments.</p>
-          </header>
-
-          <div className="card">
-            <header className="card-header">
-              <h2>Active Assignments</h2>
-            </header>
-            <div className="card-body">
-              <div className="item-list">
-                {activeAssignments.length > 0 ? (
-                  activeAssignments.map(asn => (
-                    <div className="item" key={asn.id}>
-                      <div className="item-content">
-                        <h3 onClick={() => viewDetails(asn)} style={{ cursor: 'pointer' }}>
-                          {asn.title}
-                        </h3>
-                        <p>Due: {asn.dueDate}</p>
-                      </div>
-                      <button
-                        onClick={() => handleSubmit(asn.id)}
-                        className="btn btn-primary"
-                      >
-                        Submit
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted">No active assignments. Great job!</p>
-                )}
-              </div>
-            </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
           </div>
-
-          <div className="card">
-            <header className="card-header">
-              <h2>Completed & Submitted</h2>
-            </header>
-            <div className="card-body">
-              <div className="item-list">
-                {submittedAssignments.length > 0 ? (
-                  submittedAssignments.map(asn => (
-                    <div className="item" key={asn.id}>
-                      <div className="item-content">
-                        <h3 onClick={() => viewDetails(asn)} style={{ cursor: 'pointer' }}>
-                          {asn.title}
-                        </h3>
-                        <p>
-                          Status:{' '}
-                          {asn.status.charAt(0).toUpperCase() +
-                            asn.status.slice(1)}
-                        </p>
-                      </div>
-                      {asn.status === 'completed' && (
-                        <div className="item-grade">{asn.grade || 'N/A'}</div>
-                      )}
-                      {asn.status === 'submitted' && (
-                        <div className="item-status">Pending Review</div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted">No submitted assignments yet.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </main>
+          <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+            You have completed {completedCount} out of {totalCount} assignments.
+          </p>
+        </div>
       </div>
-      <ToastContainer />
-    </>
+
+      {assignments.map((a, i) => {
+        const sub = getMySubmission(a.id);
+        const currentInput = inputData[a.id] || { type: 'link', value: '' };
+        return (
+          <div key={a.id} className="animate-slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
+            <Card title={a.title}>
+              <p style={{ color: '#4b5563', marginBottom: '10px' }}>{a.desc}</p>
+              <p style={{ color: '#dc2626', fontWeight: 'bold' }}>Deadline: {a.deadline}</p>
+              
+              <div style={{ marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                {sub ? (
+                  <div style={{ padding: '10px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <strong>✅ Submitted:</strong> {sub.link}
+                    {sub.grade && <div style={{marginTop:'5px', color:'#15803d'}}><strong>Grade:</strong> {sub.grade}/100</div>}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{display:'flex', gap:'15px', marginBottom:'10px'}}>
+                        <label><input type="radio" name={`t-${a.id}`} checked={currentInput.type==='link'} onChange={()=>handleInputChange(a.id,'','link')} /> Paste Link</label>
+                        <label><input type="radio" name={`t-${a.id}`} checked={currentInput.type==='file'} onChange={()=>handleInputChange(a.id,'','file')} /> Upload PDF</label>
+                    </div>
+                    <div style={{display:'flex', gap:'10px'}}>
+                        {currentInput.type === 'link' ? 
+                           <input type="text" placeholder="http://..." className="custom-input" value={currentInput.value} onChange={e=>handleInputChange(a.id,e.target.value,'link')} /> : 
+                           <input type="file" className="custom-input" onChange={e=>handleInputChange(a.id,e.target.files[0],'file')} />
+                        }
+                        <Button onClick={()=>handleSubmit(a.id)}>Submit</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        );
+      })}
+    </div>
   );
 }
-
-export default StudentDashboard;

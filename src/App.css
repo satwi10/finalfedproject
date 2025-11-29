@@ -1,42 +1,325 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* src/App.css */
+
+/* --- 1. Global Reset & Background --- */
+* {
+  box-sizing: border-box; /* CRITICAL: Ensures padding doesn't expand boxes */
+}
+/* Add this to the very top of src/App.css */
+img {
+  max-width: 100%;
+  display: block;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Outfit', sans-serif;
+  /* Pink/Purple Gradient Background */
+  background: linear-gradient(135deg, #a156a5 0%, #d64a7c 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- 2. Login Card Wrapper --- */
+.login-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh; /* Centers vertically */
+  padding: 20px;
+}
+
+.login-card {
+  background: #fdf2f8; /* Very light pink tint for the card body to match image */
+  width: 100%;
+  max-width: 420px;
+  border-radius: 24px; /* Rounder corners */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+/* --- 3. The Tabs (Top Section) --- */
+.role-tabs {
+  display: flex;
+  background-color: #eee4e9; /* Grayish-pink background for inactive area */
+  padding: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 18px; /* Taller tabs to breathe */
+  text-align: center;
+  font-weight: 700;
+  color: #888;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  background-color: #ffffff; /* White active tab */
+  color: #0fbcf9; /* Teal text */
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  /* This creates the "lifted" card effect for the active tab */
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+}
+
+/* --- 4. Form Content --- */
+.form-content {
+  padding: 2.5rem 2rem; /* Spacious padding */
+  background: #fdf2f8; /* Matches card background */
+}
+
+.form-content h2 {
+  color: #1f2937;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  font-weight: 800;
+  font-size: 1.6rem;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* --- 5. Inputs (Fitting the Text) --- */
+.input-group {
+  margin-bottom: 1.5rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.input-group label {
+  display: block;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 0.6rem;
+  font-size: 0.95rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.glass-input, .custom-input {
+  width: 100%; /* Forces fit to container */
+  padding: 16px 20px; /* Spacious padding inside the box */
+  border: 1px solid transparent; /* Prevents layout jump on focus */
+  background-color: #eaf4fc; /* Light blue background */
+  border-radius: 12px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+  transition: all 0.2s;
 }
 
-.card {
-  padding: 2em;
+.glass-input:focus, .custom-input:focus {
+  outline: none;
+  background-color: #ffffff;
+  border-color: #0fbcf9;
+  box-shadow: 0 0 0 4px rgba(15, 188, 249, 0.1);
 }
 
-.read-the-docs {
-  color: #888;
+/* --- 6. The Button --- */
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(to right, #22d3ee, #2dd4bf); /* Teal Gradient */
+  background-color: #1dd1a1; /* Fallback */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 1rem;
+  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.6);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Links */
+a {
+  color: #0fbcf9;
+  text-decoration: none;
+  font-weight: 700;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+a:hover {
+  border-bottom-color: #0fbcf9;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Navbar Tweaks */
+/* src/App.css */
+
+.navbar {
+  /* This ensures the white bar stays at the top */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.8rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+/* Safety net class for the logo */
+.navbar-logo {
+  height: 40px !important;
+  width: auto !important;
+  max-width: 150px;
+}
+/* --- Force Logo Size (Safety Net) --- */
+.landing-logo-img {
+  max-width: 150px !important;
+  width: 150px !important;
+  height: auto !important;
+}
+
+/* Ensure the glass panel doesn't get stretched by huge content */
+.glass-panel {
+  overflow: hidden; /* Hides anything that tries to stick out */
+}
+/* --- Dashboard Specific Styles --- */
+.dashboard-container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 20px;
+}
+
+.dashboard-header {
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.white-panel {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #f3f4f6;
+  padding-bottom: 0.5rem;
+}
+
+.assignment-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 10px;
+  color: white;
+}
+
+.btn-edit { background-color: #f59e0b; }
+.btn-delete { background-color: #ef4444; }
+.btn-grade { background-color: #0fbcf9; }
+/* --- Analytics & Progress Features --- */
+
+/* Simple Bar Chart */
+.chart-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  height: 150px;
+  padding: 10px 0;
+  border-bottom: 2px solid #e5e7eb;
+  margin-top: 1rem;
+}
+
+.chart-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.chart-bar {
+  width: 40px;
+  background: linear-gradient(to top, #23a6d5, #23d5ab);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.5s ease;
+  position: relative;
+}
+
+.chart-label {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-align: center;
+}
+
+.chart-value {
+  position: absolute;
+  top: -25px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  color: #23a6d5;
+  width: 100%;
+  text-align: center;
+}
+
+/* Progress Bar */
+.progress-container {
+  margin-bottom: 2rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.progress-track {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 10px;
+  transition: width 0.8s ease-out;
 }
